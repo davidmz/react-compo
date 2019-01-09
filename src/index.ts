@@ -1,7 +1,9 @@
-export { compo } from './compo';
+export { compo, DID_UPDATE, WILL_UNMOUNT, UPDATE } from './compo';
+export { createEffector, createEffectorOn } from './effectCreator';
+export { createState, createStateOn } from './stateCreator';
 
-// Export types
-export { CompoTools } from './types';
+// Types
+export { RenderFunc, Fabric } from './compo';
 export {
   StateCreator,
   StateGetter,

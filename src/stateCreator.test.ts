@@ -1,8 +1,10 @@
-import { bindStateCreator } from './stateCreator';
+import { createStateOn } from './stateCreator';
+import { EventEmitter } from 'events';
+import { UPDATE } from './compo';
 
 describe('#stateCreator', () => {
-  const onChange = jest.fn();
-  const createState = bindStateCreator(onChange);
+  const events = new EventEmitter();
+  const createState = createStateOn(events);
 
   it('should return an initial state', () => {
     const [get] = createState(42);
@@ -21,15 +23,19 @@ describe('#stateCreator', () => {
     expect(get()).toBe(84);
   });
 
-  it('should call onChange on new state', () => {
+  it('should update on new state', () => {
     const [, set] = createState(42);
+    const fn = jest.fn();
+    events.once(UPDATE, fn);
     set(43);
-    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(fn).toHaveBeenCalledTimes(1);
   });
 
-  it('should not call onChange on the same state', () => {
+  it('should not update on the same state', () => {
     const [, set] = createState(42);
+    const fn = jest.fn();
+    events.once(UPDATE, fn);
     set(42);
-    expect(onChange).not.toHaveBeenCalled();
+    expect(fn).not.toHaveBeenCalled();
   });
 });

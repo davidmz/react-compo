@@ -1,10 +1,14 @@
+import { bindToCurrentComponent } from './current-component';
+import { UPDATE } from './compo';
+import { EventEmitter } from 'events';
+
 export type StateSetterArg<S> = S | ((v: S) => S);
 export type StateGetter<S> = () => S;
 export type StateSetter<S> = (v: StateSetterArg<S>) => void;
 
 export type StateCreator = <S>(initial: S) => [StateGetter<S>, StateSetter<S>];
 
-export const bindStateCreator = (onChange: () => void) => <S>(
+export const createStateOn = (events: EventEmitter) => <S>(
   initial: S
 ): [StateGetter<S>, StateSetter<S>] => {
   let value = initial;
@@ -19,8 +23,13 @@ export const bindStateCreator = (onChange: () => void) => <S>(
       }
       if (value !== v) {
         value = v;
-        onChange();
+        events.emit(UPDATE);
       }
     },
   ];
 };
+
+export const createState = bindToCurrentComponent(
+  'createState',
+  createStateOn
+) as StateCreator;

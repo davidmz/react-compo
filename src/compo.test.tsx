@@ -2,6 +2,8 @@ import React from 'react';
 import { shallow, mount } from 'enzyme';
 
 import { compo } from '.';
+import { createState } from './stateCreator';
+import { createEffector } from './effectCreator';
 
 function delay(timeout: number) {
   return new Promise((resolve) => setTimeout(resolve, timeout));
@@ -9,7 +11,7 @@ function delay(timeout: number) {
 
 describe('react-compo', () => {
   it('should render a component created by compo', () => {
-    const Test = compo(() => ({ name }) => <>Hi, {name}!</>);
+    const Test = compo<{ name: string }>(() => ({ name }) => <>Hi, {name}!</>);
     const wrapper = shallow(<Test name={'Alice'} />);
     expect(wrapper.text()).toBe('Hi, Alice!');
   });
@@ -33,7 +35,7 @@ describe('react-compo', () => {
 
   describe('state', () => {
     it('should get state value', () => {
-      const Test = compo(({ createState }) => {
+      const Test = compo(() => {
         const [getNum] = createState(42);
         return () => <>{getNum()}</>;
       });
@@ -45,7 +47,7 @@ describe('react-compo', () => {
       let setValue = (_: number) => {};
       let renderFunc = jest.fn();
 
-      const Test = compo(({ createState }) => {
+      const Test = compo(() => {
         const [getNum, setNum] = createState(42);
         setValue = (v: number) => setNum(v);
         renderFunc = jest.fn(() => <>{getNum()}</>);
@@ -65,7 +67,7 @@ describe('react-compo', () => {
       let setValue = (_: number) => {};
       let renderFunc = jest.fn();
 
-      const Test = compo(({ createState }) => {
+      const Test = compo(() => {
         const [getNum, setNum] = createState(42);
         setValue = (v: number) => setNum(v);
         renderFunc = jest.fn(() => <>{getNum()}</>);
@@ -84,8 +86,8 @@ describe('react-compo', () => {
 
   describe('effects', () => {
     it('should call effect function', (done) => {
-      const Test = compo(({ createEffect }) => {
-        const myEffect = createEffect();
+      const Test = compo(() => {
+        const myEffect = createEffector();
         return () => {
           myEffect(done);
           return null;
@@ -96,8 +98,8 @@ describe('react-compo', () => {
     });
 
     it('should call cleaner on unmount', (done) => {
-      const Test = compo(({ createEffect }) => {
-        const myEffect = createEffect();
+      const Test = compo(() => {
+        const myEffect = createEffector();
         return () => {
           myEffect(() => done);
           return null;
@@ -112,8 +114,8 @@ describe('react-compo', () => {
       const wasRendered = jest.fn();
       const effect = jest.fn();
 
-      const Test = compo(({ createEffect }) => {
-        const myEffect = createEffect();
+      const Test = compo(() => {
+        const myEffect = createEffector();
         return ({ x, y }) => {
           wasRendered(x, y);
           myEffect(effect, [x]);
@@ -148,9 +150,9 @@ describe('react-compo', () => {
       const cleaner = jest.fn();
       const effect = jest.fn(() => cleaner);
 
-      const Test = compo(({ createEffect }) => {
-        const myEffect = createEffect();
-        return ({ x, y }) => {
+      const Test = compo(() => {
+        const myEffect = createEffector();
+        return ({ x, y }: { x: number; y: number }) => {
           wasRendered(x, y);
           myEffect(effect, []);
           return null;
@@ -159,7 +161,7 @@ describe('react-compo', () => {
 
       const wrapper = mount(<Test x={1} y={1} />);
       expect(wasRendered).toHaveBeenCalledWith(1, 1);
-      await delay(20);
+      // await delay(20);
       expect(cleaner).not.toHaveBeenCalled();
       expect(effect).toHaveBeenCalled();
       wasRendered.mockClear();
@@ -167,7 +169,7 @@ describe('react-compo', () => {
 
       wrapper.setProps({ x: 1, y: 2 });
       expect(wasRendered).toHaveBeenCalledWith(1, 2);
-      await delay(20);
+      // await delay(20);
       expect(cleaner).not.toHaveBeenCalled();
       expect(effect).not.toHaveBeenCalled();
       wasRendered.mockClear();
@@ -175,7 +177,7 @@ describe('react-compo', () => {
 
       wrapper.setProps({ x: 2, y: 2 });
       expect(wasRendered).toHaveBeenCalledWith(2, 2);
-      await delay(20);
+      // await delay(20);
       expect(cleaner).not.toHaveBeenCalled();
       expect(effect).not.toHaveBeenCalled();
       wasRendered.mockClear();
@@ -188,19 +190,6 @@ describe('react-compo', () => {
       expect(cleaner).toHaveBeenCalled();
       wasRendered.mockClear();
       effect.mockClear();
-    });
-  });
-
-  describe('custom tools', () => {
-    it('should initialize custom tool', () => {
-      const custom = jest.fn();
-      const Test = compo(({ use }) => {
-        use(custom);
-        return () => null;
-      });
-
-      mount(<Test />);
-      expect(custom).toHaveBeenCalled();
     });
   });
 });
