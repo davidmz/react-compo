@@ -1,16 +1,13 @@
-import { bindToCurrentComponent } from './current-component';
-import { UPDATE } from './compo';
-import { EventEmitter } from 'events';
+import { DO_UPDATE, Use, compoEvents } from './compo';
 
 export type StateSetterArg<S> = S | ((v: S) => S);
 export type StateGetter<S> = () => S;
 export type StateSetter<S> = (v: StateSetterArg<S>) => void;
 
-export type StateCreator = <S>(initial: S) => [StateGetter<S>, StateSetter<S>];
-
-export const createStateOn = (events: EventEmitter) => <S>(
-  initial: S
+export const state = <S>(initial: S) => (
+  use: Use
 ): [StateGetter<S>, StateSetter<S>] => {
+  const events = use(compoEvents);
   let value = initial;
   return [
     // Get
@@ -23,13 +20,8 @@ export const createStateOn = (events: EventEmitter) => <S>(
       }
       if (value !== v) {
         value = v;
-        events.emit(UPDATE);
+        events.emit(DO_UPDATE);
       }
     },
   ];
 };
-
-export const createState = bindToCurrentComponent(
-  'createState',
-  createStateOn
-) as StateCreator;

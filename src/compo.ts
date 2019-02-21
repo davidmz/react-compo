@@ -1,32 +1,26 @@
 import { ComponentType, ReactNode, PureComponent } from 'react';
-import { EventEmitter } from 'events';
-
-import { currentComponent } from './current-component';
+import { Events, SimpleEvents } from './events';
 
 export const DID_UPDATE = 'DID_UPDATE';
 export const WILL_UNMOUNT = 'WILL_UNMOUNT';
-export const UPDATE = 'UPDATE';
+export const DO_UPDATE = 'UPDATE';
 
+export type CompoFunc<P> = (use: Use) => RenderFunc<P>;
 export type RenderFunc<P> = (props: P) => ReactNode;
-export type Fabric<P> = () => RenderFunc<P>;
 
-export function compo<P>(fabric: Fabric<P>, _?: never): ComponentType<P>;
-export function compo<P>(name: string, fabric: Fabric<P>): ComponentType<P>;
+export function compo<P>(func: CompoFunc<P>, _?: never): ComponentType<P>;
+export function compo<P>(name: string, func: CompoFunc<P>): ComponentType<P>;
 export function compo<P>(arg1: any, arg2: any): ComponentType<P> {
-  const fabric = (typeof arg1 === 'string' ? arg2 : arg1) as Fabric<P>;
-  const name = typeof arg1 === 'string' ? arg1 : fabric.name || '[=>]';
+  const func = (typeof arg1 === 'string' ? arg2 : arg1) as CompoFunc<P>;
+  const name = typeof arg1 === 'string' ? arg1 : func.name || '[=>]';
 
   return class extends PureComponent<P> {
     static displayName = name;
     renderFunc: RenderFunc<P> | null = null;
-    events = new EventEmitter();
-
-    constructor(props: P) {
-      super(props);
-      this.events.on(UPDATE, this.forceUpdate.bind(this));
-    }
+    events = new SimpleEvents();
 
     componentDidMount() {
+      this.events.on(DO_UPDATE, this.forceUpdate.bind(this));
       this.events.emit(DID_UPDATE);
     }
 
@@ -41,14 +35,26 @@ export function compo<P>(arg1: any, arg2: any): ComponentType<P> {
 
     render() {
       if (!this.renderFunc) {
-        try {
-          currentComponent(this.events);
-          this.renderFunc = fabric();
-        } finally {
-          currentComponent(null);
-        }
+        this.renderFunc = func(useWith(this.events));
       }
       return this.renderFunc(this.props);
     }
   };
 }
+
+export type Use = <T>(hc: HookCreator<T>) => T;
+export type HookCreator<T> = (u: Use) => T;
+
+export const compoEvents: HookCreator<Events> = () => {
+  throw new Error('Incorrect usage');
+};
+
+export const useWith = (e: Events) => {
+  const use: Use = (hc: any) => {
+    if (hc === compoEvents) {
+      return e;
+    }
+    return hc(use);
+  };
+  return use;
+};

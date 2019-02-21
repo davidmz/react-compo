@@ -1,18 +1,18 @@
-import { createEffectorOn, EffectCreator } from './effectCreator';
-import { EventEmitter } from 'events';
-import { DID_UPDATE, WILL_UNMOUNT } from './compo';
+import { effector } from './effect';
+import { DID_UPDATE, WILL_UNMOUNT, Use, useWith } from './compo';
+import { Events, SimpleEvents } from './events';
 
 describe('#effectCreator', () => {
-  let createEffect: EffectCreator;
-  let events: EventEmitter;
+  let events: Events;
+  let use: Use;
 
   beforeEach(() => {
-    events = new EventEmitter();
-    createEffect = createEffectorOn(events);
+    events = new SimpleEvents();
+    use = useWith(events);
   });
 
   it('should add an effect', () => {
-    const eff = createEffect();
+    const eff = use(effector());
     const foo = jest.fn();
     eff(foo);
     events.emit(DID_UPDATE);
@@ -21,8 +21,8 @@ describe('#effectCreator', () => {
   });
 
   it('should add two effects', () => {
-    const eff1 = createEffect();
-    const eff2 = createEffect();
+    const eff1 = use(effector());
+    const eff2 = use(effector());
     const foo = jest.fn();
     const bar = jest.fn();
     eff1(foo);
@@ -34,7 +34,7 @@ describe('#effectCreator', () => {
   });
 
   it('should overwrite the same effect', () => {
-    const eff = createEffect();
+    const eff = use(effector());
     const foo = jest.fn();
     const bar = jest.fn();
     eff(foo);
@@ -46,7 +46,7 @@ describe('#effectCreator', () => {
   });
 
   it('should not overwrite effect if deps is []', () => {
-    const eff = createEffect();
+    const eff = use(effector());
     const foo = jest.fn();
     const bar = jest.fn();
     eff(foo, []);
@@ -58,7 +58,7 @@ describe('#effectCreator', () => {
   });
 
   it('should overwrite effect if deps is the same but not arrays', () => {
-    const eff = createEffect();
+    const eff = use(effector());
     const foo = jest.fn();
     const bar = jest.fn();
     eff(foo, 'foo');
@@ -71,7 +71,7 @@ describe('#effectCreator', () => {
   });
 
   it('should not overwrite effect if deps is equal arrays', () => {
-    const eff = createEffect();
+    const eff = use(effector());
     const foo = jest.fn();
     const bar = jest.fn();
     eff(foo, ['foo', 1]);
@@ -85,7 +85,7 @@ describe('#effectCreator', () => {
 
   describe('cleaners', () => {
     it('should call cleaner after update', () => {
-      const eff = createEffect();
+      const eff = use(effector());
       const cleaner = jest.fn();
       const effect = jest.fn(() => cleaner);
 
@@ -108,7 +108,7 @@ describe('#effectCreator', () => {
     });
 
     it('should call []-effect cleaner before unmount', () => {
-      const eff = createEffect();
+      const eff = use(effector());
       const cleaner = jest.fn();
       const effect = jest.fn(() => cleaner);
 

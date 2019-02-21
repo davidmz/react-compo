@@ -2,8 +2,8 @@ import React from 'react';
 import { shallow, mount } from 'enzyme';
 
 import { compo } from '.';
-import { createState } from './stateCreator';
-import { createEffector } from './effectCreator';
+import { state } from './state';
+import { effector } from './effect';
 
 function delay(timeout: number) {
   return new Promise((resolve) => setTimeout(resolve, timeout));
@@ -35,8 +35,8 @@ describe('react-compo', () => {
 
   describe('state', () => {
     it('should get state value', () => {
-      const Test = compo(() => {
-        const [getNum] = createState(42);
+      const Test = compo((use) => {
+        const [getNum] = use(state(42));
         return () => <>{getNum()}</>;
       });
       const wrapper = shallow(<Test />);
@@ -47,8 +47,8 @@ describe('react-compo', () => {
       let setValue = (_: number) => {};
       let renderFunc = jest.fn();
 
-      const Test = compo(() => {
-        const [getNum, setNum] = createState(42);
+      const Test = compo((use) => {
+        const [getNum, setNum] = use(state(42));
         setValue = (v: number) => setNum(v);
         renderFunc = jest.fn(() => <>{getNum()}</>);
         return renderFunc;
@@ -67,8 +67,8 @@ describe('react-compo', () => {
       let setValue = (_: number) => {};
       let renderFunc = jest.fn();
 
-      const Test = compo(() => {
-        const [getNum, setNum] = createState(42);
+      const Test = compo((use) => {
+        const [getNum, setNum] = use(state(42));
         setValue = (v: number) => setNum(v);
         renderFunc = jest.fn(() => <>{getNum()}</>);
         return renderFunc;
@@ -86,8 +86,8 @@ describe('react-compo', () => {
 
   describe('effects', () => {
     it('should call effect function', (done) => {
-      const Test = compo(() => {
-        const myEffect = createEffector();
+      const Test = compo((use) => {
+        const myEffect = use(effector());
         return () => {
           myEffect(done);
           return null;
@@ -98,8 +98,8 @@ describe('react-compo', () => {
     });
 
     it('should call cleaner on unmount', (done) => {
-      const Test = compo(() => {
-        const myEffect = createEffector();
+      const Test = compo((use) => {
+        const myEffect = use(effector());
         return () => {
           myEffect(() => done);
           return null;
@@ -114,8 +114,8 @@ describe('react-compo', () => {
       const wasRendered = jest.fn();
       const effect = jest.fn();
 
-      const Test = compo(() => {
-        const myEffect = createEffector();
+      const Test = compo((use) => {
+        const myEffect = use(effector());
         return ({ x, y }) => {
           wasRendered(x, y);
           myEffect(effect, [x]);
@@ -150,8 +150,8 @@ describe('react-compo', () => {
       const cleaner = jest.fn();
       const effect = jest.fn(() => cleaner);
 
-      const Test = compo(() => {
-        const myEffect = createEffector();
+      const Test = compo((use) => {
+        const myEffect = use(effector());
         return ({ x, y }: { x: number; y: number }) => {
           wasRendered(x, y);
           myEffect(effect, []);

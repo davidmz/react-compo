@@ -1,15 +1,15 @@
 import React from 'react';
-import { compo } from '../src';
-import { createState } from '../src/stateCreator';
-import { createEffector } from '../src/effectCreator';
+import { compo, state, effector } from 'react-compo';
 
 type Props = { btnName: string };
 
-export const Counter = compo('Counter', () => {
-  const [get, set] = createState(0);
-  const titleEffect = createEffector();
+export const Counter = compo('Counter', (use) => {
+  // Declarations
+  const [get, set] = use(state(0));
+  const titleEffect = use(effector());
   const onClick = () => set((c: number) => c + 1);
 
+  // Render function
   return ({ btnName }: Props) => {
     const count = get();
     titleEffect(() => (document.title = `${count} clicks`));

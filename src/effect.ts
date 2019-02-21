@@ -1,15 +1,12 @@
-import { bindToCurrentComponent } from './current-component';
-import { DID_UPDATE, WILL_UNMOUNT } from './compo';
-import { EventEmitter } from 'events';
+import { DID_UPDATE, WILL_UNMOUNT, Use, compoEvents } from './compo';
 
 export type EffectCleaner = () => void;
 export type Effect = () => any;
 
 export type Effector = (effect: Effect, deps?: any) => void;
 
-export type EffectCreator = () => Effector;
-
-export const createEffectorOn = (events: EventEmitter): EffectCreator => () => {
+export const effector = () => (use: Use): Effector => {
+  const events = use(compoEvents);
   let effect: Effect | null = null;
   let cleaner: EffectCleaner | null = null;
   let prevDeps: any;
@@ -41,11 +38,6 @@ export const createEffectorOn = (events: EventEmitter): EffectCreator => () => {
     }
   };
 };
-
-export const createEffector = bindToCurrentComponent(
-  'createEffector',
-  createEffectorOn
-) as EffectCreator;
 
 ///////////////////
 
