@@ -1,13 +1,9 @@
 import React from 'react';
 import { shallow, mount } from 'enzyme';
 
-import { compo } from '.';
-import { state } from './state';
-import { effector } from './effect';
-
-function delay(timeout: number) {
-  return new Promise((resolve) => setTimeout(resolve, timeout));
-}
+import { compo } from './compo';
+import { newState } from './state';
+import { newReaction } from './reaction';
 
 describe('react-compo', () => {
   it('should render a component created by compo', () => {
@@ -16,27 +12,29 @@ describe('react-compo', () => {
     expect(wrapper.text()).toBe('Hi, Alice!');
   });
 
-  it('should set displayName on named function', () => {
-    const Test = compo(function Test() {
-      return () => null;
+  describe('displayName', () => {
+    it('should set displayName on named function', () => {
+      const Test = compo(function Test() {
+        return () => null;
+      });
+      expect(Test.displayName).toBe('Test');
     });
-    expect(Test.displayName).toBe('Test');
-  });
 
-  it('should set displayName on anonymous function', () => {
-    const Test = compo(() => () => null);
-    expect(Test.displayName).toBe('[=>]');
-  });
+    it('should set displayName on anonymous function', () => {
+      const Test = compo(() => () => null);
+      expect(Test.displayName).toBe('[=>]');
+    });
 
-  it('should explicitly set displayName', () => {
-    const Test = compo('TestName', () => () => null);
-    expect(Test.displayName).toBe('TestName');
+    it('should explicitly set displayName', () => {
+      const Test = compo('TestName', () => () => null);
+      expect(Test.displayName).toBe('TestName');
+    });
   });
 
   describe('state', () => {
     it('should get state value', () => {
-      const Test = compo((use) => {
-        const [getNum] = use(state(42));
+      const Test = compo(() => {
+        const [getNum] = newState(42);
         return () => <>{getNum()}</>;
       });
       const wrapper = shallow(<Test />);
@@ -47,8 +45,8 @@ describe('react-compo', () => {
       let setValue = (_: number) => {};
       let renderFunc = jest.fn();
 
-      const Test = compo((use) => {
-        const [getNum, setNum] = use(state(42));
+      const Test = compo(() => {
+        const [getNum, setNum] = newState(42);
         setValue = (v: number) => setNum(v);
         renderFunc = jest.fn(() => <>{getNum()}</>);
         return renderFunc;
@@ -67,8 +65,8 @@ describe('react-compo', () => {
       let setValue = (_: number) => {};
       let renderFunc = jest.fn();
 
-      const Test = compo((use) => {
-        const [getNum, setNum] = use(state(42));
+      const Test = compo(() => {
+        const [getNum, setNum] = newState(42);
         setValue = (v: number) => setNum(v);
         renderFunc = jest.fn(() => <>{getNum()}</>);
         return renderFunc;
@@ -84,112 +82,84 @@ describe('react-compo', () => {
     });
   });
 
-  describe('effects', () => {
-    it('should call effect function', (done) => {
-      const Test = compo((use) => {
-        const myEffect = use(effector());
-        return () => {
-          myEffect(done);
-          return null;
-        };
+  describe('reaction', () => {
+    it('should call reaction function', () => {
+      const reaction = jest.fn();
+
+      const Test = compo(() => {
+        newReaction(reaction)();
+        return () => null;
       });
 
       mount(<Test />);
+      expect(reaction).toHaveBeenCalled();
     });
 
-    it('should call cleaner on unmount', (done) => {
-      const Test = compo((use) => {
-        const myEffect = use(effector());
-        return () => {
-          myEffect(() => done);
-          return null;
-        };
+    it('should call cleaner on unmount', () => {
+      const cleaner = jest.fn();
+
+      const Test = compo(() => {
+        newReaction(() => cleaner)();
+        return () => null;
       });
 
       const wrapper = mount(<Test />);
+      expect(cleaner).not.toHaveBeenCalled();
       wrapper.unmount();
+      expect(cleaner).toHaveBeenCalled();
     });
 
-    it('should call effect with condition', async () => {
+    it('should call reaction with condition', () => {
       const wasRendered = jest.fn();
-      const effect = jest.fn();
+      const reaction = jest.fn();
 
-      const Test = compo((use) => {
-        const myEffect = use(effector());
+      const Test = compo(() => {
+        const myReaction = newReaction(reaction);
         return ({ x, y }) => {
           wasRendered(x, y);
-          myEffect(effect, [x]);
+          myReaction(x);
           return null;
         };
       });
 
       const wrapper = mount(<Test x={1} y={1} />);
       expect(wasRendered).toHaveBeenCalledWith(1, 1);
-      await delay(20);
-      expect(effect).toHaveBeenCalled();
+      expect(reaction).toHaveBeenCalledWith(1);
       wasRendered.mockClear();
-      effect.mockClear();
+      reaction.mockClear();
 
       wrapper.setProps({ x: 1, y: 2 });
       expect(wasRendered).toHaveBeenCalledWith(1, 2);
-      await delay(20);
-      expect(effect).not.toHaveBeenCalled();
+      expect(reaction).not.toHaveBeenCalled();
       wasRendered.mockClear();
-      effect.mockClear();
+      reaction.mockClear();
 
       wrapper.setProps({ x: 2, y: 2 });
       expect(wasRendered).toHaveBeenCalledWith(2, 2);
-      await delay(20);
-      expect(effect).toHaveBeenCalled();
+      expect(reaction).toHaveBeenCalledWith(2);
       wasRendered.mockClear();
-      effect.mockClear();
+      reaction.mockClear();
     });
 
-    it('should call cleaner on unmount (effect with [] deps)', async () => {
-      const wasRendered = jest.fn();
-      const cleaner = jest.fn();
-      const effect = jest.fn(() => cleaner);
+    it('should call reaction without arguments after every rendering', () => {
+      const reaction = jest.fn();
 
-      const Test = compo((use) => {
-        const myEffect = use(effector());
-        return ({ x, y }: { x: number; y: number }) => {
-          wasRendered(x, y);
-          myEffect(effect, []);
+      const Test = compo(() => {
+        const myReaction = newReaction(reaction);
+        // @ts-ignore: We don't actually use this property
+        return ({ x }) => {
+          myReaction();
           return null;
         };
       });
 
-      const wrapper = mount(<Test x={1} y={1} />);
-      expect(wasRendered).toHaveBeenCalledWith(1, 1);
-      // await delay(20);
-      expect(cleaner).not.toHaveBeenCalled();
-      expect(effect).toHaveBeenCalled();
-      wasRendered.mockClear();
-      effect.mockClear();
+      const wrapper = mount(<Test x={1} />);
+      expect(reaction).toHaveBeenCalledWith();
+      reaction.mockClear();
 
-      wrapper.setProps({ x: 1, y: 2 });
-      expect(wasRendered).toHaveBeenCalledWith(1, 2);
-      // await delay(20);
-      expect(cleaner).not.toHaveBeenCalled();
-      expect(effect).not.toHaveBeenCalled();
-      wasRendered.mockClear();
-      effect.mockClear();
-
-      wrapper.setProps({ x: 2, y: 2 });
-      expect(wasRendered).toHaveBeenCalledWith(2, 2);
-      // await delay(20);
-      expect(cleaner).not.toHaveBeenCalled();
-      expect(effect).not.toHaveBeenCalled();
-      wasRendered.mockClear();
-      effect.mockClear();
-
-      wrapper.unmount();
-      expect(wasRendered).not.toHaveBeenCalled();
-      await delay(20);
-      expect(effect).not.toHaveBeenCalled();
-      expect(cleaner).toHaveBeenCalled();
-      wasRendered.mockClear();
-      effect.mockClear();
+      wrapper.setProps({ x: 2 });
+      expect(reaction).toHaveBeenCalled();
+      reaction.mockClear();
     });
   });
 });

@@ -4,30 +4,45 @@ _react-compo_ is the attempt to reinvent React hooks without magic. It is still 
 
 ```TypeScript
 import React from 'react';
-import { compo, state, effector } from 'react-compo';
+import {
+   compo,
+   newState,
+   newReaction,
+} from 'react-compo';
 
 type Props = { btnName: string };
 
-export const Counter = compo('Counter', (use) => {
-  // Declarations
-  const [get, set] = use(state(0));    // like 'useState' React hook
-  const titleEffect = use(effector()); // like 'useEffect' React hook
-  const onClick = () => set((c: number) => c + 1);
+export const Counter = compo(
+  'Counter', // Component 'displayName', may be omitted
+  () => {
+    // Initialization phase
+    // This section executes once, before the first component render
 
-  // Render function
-  return ({ btnName }: Props) => {
-    const count = get();
-    titleEffect(() => (document.title = `${count} clicks`), [count]);
-
-    return (
-      <p>
-        This{' '}
-        <button type="button" onClick={onClick}>
-          {btnName}
-        </button>{' '}
-        was clicked {count} times.
-      </p>
+    // State (like 'useState' React hook)
+    const [getCount, setCount] = newState(0);
+    // Reaction (like 'useEffect' React hook)
+    const updateTitle = newReaction(
+      (name: string, count: number) => (document.title = `${name} was clicked ${count} times`)
     );
-  };
-});
+    // Event handler (declare it once)
+    const onClick = () => setCount((c: number) => c + 1);
+
+    // Render phase
+    // This functions calls at every render and performs render itself
+    return ({ btnName }: Props) => {
+      const count = getCount();
+      updateTitle(btnName, count);
+
+      return (
+        <p>
+          This{' '}
+          <button type="button" onClick={onClick}>
+            {btnName}
+          </button>{' '}
+          was clicked {count} times.
+        </p>
+      );
+    };
+  }
+);
 ```

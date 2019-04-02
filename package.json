@@ -1,6 +1,6 @@
 {
   "name": "react-compo",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Like a React hooks but without magic",
   "homepage": "https://github.com/davidmz/react-compo",
   "author": "David Mzareulyan <david@hiero.ru> (https://github.com/davidmz)",
@@ -32,6 +32,7 @@
   },
   "dependencies": {
     "@types/react": "^16.7.18",
+    "events": "^3.1.0",
     "react": "^16.7.0",
     "tslib": "^1.9.3"
   }

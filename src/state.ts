@@ -1,20 +1,21 @@
-import { DO_UPDATE, Use, compoEvents } from './compo';
+import EventEmitter from 'events';
 
-export type StateSetterArg<S> = S | ((v: S) => S);
+import { DO_UPDATE, withCurrentComponent } from './compo';
+
 export type StateGetter<S> = () => S;
-export type StateSetter<S> = (v: StateSetterArg<S>) => void;
+export type StateSetter<S> = (v: S | ((v: S) => S)) => void;
+export type StateCreator = <S>(initial: S) => [StateGetter<S>, StateSetter<S>];
 
-export const state = <S>(initial: S) => (
-  use: Use
-): [StateGetter<S>, StateSetter<S>] => {
-  const events = use(compoEvents);
+export const newStateWith = (events: EventEmitter): StateCreator => <S>(
+  initial: S
+) => {
   let value = initial;
   return [
     // Get
     () => value,
 
     // Set
-    (v: StateSetterArg<S>) => {
+    (v: S | ((v: S) => S)) => {
       if (typeof v === 'function') {
         v = (v as ((v: S) => S))(value);
       }
@@ -25,3 +26,8 @@ export const state = <S>(initial: S) => (
     },
   ];
 };
+
+export const newState = withCurrentComponent(
+  'newState',
+  newStateWith
+) as StateCreator;
